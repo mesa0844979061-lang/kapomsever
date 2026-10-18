@@ -5,16 +5,16 @@ api-version: '1.21'
 depend: [Multiverse-Core, packetevents]
 commands:
   kapom:
-    description: คำสั่งหลัก KapomCore
+    description: Main KapomCore command
     usage: /kapom <spawn|remove|win|lose>
     permission: kapom.admin
   tier:
-    description: ตั้งเทียร์ผู้เล่น
-    usage: /tier add <ผู้เล่น> <เทียร์>
+    description: Set a player tier
+    usage: /tier add <player> <tier>
     permission: kapom.admin
   npc:
-    description: ตั้งโลกปลายทางของ NPC
-    usage: /npc <ชื่อnpc> set <ชื่อโลก>
+    description: Set the NPC destination world
+    usage: /npc <name> set <world>
     permission: kapom.admin
 permissions:
   kapom.admin:

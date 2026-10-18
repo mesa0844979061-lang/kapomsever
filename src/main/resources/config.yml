@@ -1,3 +1,4 @@
-scoreboard-title: "&6&lKAPOM"
-# index ของ metadata "skin layers" (17 = 1.20.2 - 1.21.8) ถ้าเวอร์ชันใหม่กว่าแล้วสกินชั้นนอกหาย ให้ปรับเลข
-skin-layer-index: 17
+# Sidebar title. MiniMessage (gradients/hex) or legacy & codes both work.
+scoreboard-title: "<gradient:#FF512F:#F09819><bold>KAPOM</bold></gradient>"
+# -1 = off (safe). 17 = skin "second layer" for 1.20.2 - 1.21.8. Wrong value => Network Protocol Error.
+skin-layer-index: -1
