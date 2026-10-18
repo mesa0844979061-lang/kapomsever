@@ -1,21 +1,23 @@
-name: KapomCore
-main: th.kapom.core.KapomPlugin
+name: KapomTier
+main: th.kapom.tier.TierPlugin
 version: 1.0.0
 api-version: '1.21'
-depend: [Multiverse-Core, packetevents]
+softdepend: [KapomCore]
 commands:
-  kapom:
-    description: Main KapomCore command
-    usage: /kapom <spawn|remove|win|lose>
+  tierreload:
+    description: Reload KapomTier config
     permission: kapom.admin
-  tier:
-    description: Set a player tier
-    usage: /tier add <player> <tier>
-    permission: kapom.admin
-  npc:
-    description: Set the NPC destination world
-    usage: /npc <name> set <world>
-    permission: kapom.admin
+  pvp:
+    description: Open PVP menu
+  duel:
+    description: Challenge a player to a duel
+    usage: /duel <player> | /duel accept <player>
+  stats:
+    description: View PvP stats
+    usage: /stats [player]
+  top:
+    description: Leaderboard by kills / streak
+    usage: /top [kills|streak]
 permissions:
   kapom.admin:
     default: op
