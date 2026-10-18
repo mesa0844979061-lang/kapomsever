@@ -1,23 +1,28 @@
-name: KapomTier
-main: th.kapom.tier.TierPlugin
-version: 1.0.0
+name: KapomCore
+main: th.kapom.core.KapomPlugin
+version: 1.2.0
 api-version: '1.21'
-softdepend: [KapomCore]
+depend: [Multiverse-Core, packetevents]
 commands:
-  tierreload:
-    description: Reload KapomTier config
-    permission: kapom.admin
-  pvp:
-    description: Open PVP menu
-  duel:
-    description: Challenge a player to a duel
-    usage: /duel <player> | /duel accept <player>
+  kapom:
+    description: Main KapomCore command
+    usage: /kapom help
+  tier:
+    description: Set a player tier and its color
+    usage: /tier add <player> <tier> [color]
+  npc:
+    description: Set the NPC destination world
+    usage: /npc <name> set <world>
   stats:
-    description: View PvP stats
+    description: Show player stats
     usage: /stats [player]
+    aliases: [pvpstats]
   top:
-    description: Leaderboard by kills / streak
-    usage: /top [kills|streak]
+    description: Show rankings
+    usage: /top [kills|deaths|wins|streak|kdr|playtime]
+    aliases: [leaderboard, lb]
 permissions:
   kapom.admin:
+    default: op
+  kapom.combat.bypass:
     default: op

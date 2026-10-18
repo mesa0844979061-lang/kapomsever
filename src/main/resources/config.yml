@@ -1,131 +1,45 @@
-# ================= TIER =================
-# tier อ่านจาก KapomCore/data.yml (ตั้งด้วย /tier add <player> <tier>)
-default-tier: "member"
-tiers:
-  member:  "<gray>[MEMBER] "
-  vip:     "<gradient:#00F5A0:#00D9F5><bold>[VIP]</bold></gradient> "
-  mvp:     "<gradient:#FF512F:#F09819><bold>[MVP]</bold></gradient> "
-  legend:  "<gradient:#FF00CC:#3333FF><bold>[LEGEND]</bold></gradient> "
-  staff:   "<red><bold>[STAFF]</bold> "
-show-health-below-name: true
-refresh-ticks: 40
+# Sidebar title. MiniMessage (gradients/hex) or legacy & codes both work.
+scoreboard-title: "<gradient:#FF512F:#F09819><bold>KAPOM</bold></gradient>"
 
-# ================= ไอเทม (ดาบ + เข็มทิศเมนู) =================
-# ว่าง [] = ให้ทุกโลก, หรือใส่ชื่อโลกที่จะแจกไอเทม
-give-items-worlds: []
-items:
-  sword:
-    material: DIAMOND_SWORD
-    slot: 0
-    name: "<gradient:#FF512F:#F09819><bold>ดาบท้า DUEL</bold></gradient>"
-    lore:
-      - "<gray>คลิกขวาที่ผู้เล่น เพื่อท้า duel"
-      - "<gray>คลิกขวากลับ เพื่อรับคำท้า"
-  menu:
-    material: COMPASS
-    slot: 8
-    name: "<gradient:#00F5A0:#00D9F5><bold>เมนู PVP</bold></gradient>"
-    lore:
-      - "<gray>คลิกขวาเพื่อเลือกโลก PVP"
+# -1 = off (safe). 17 = NPC skin "second layer" for 1.20.2 - 1.21.8. Wrong value => Network Protocol Error.
+skin-layer-index: -1
 
-# ================= เมนูเข้าโลก PVP (/pvp หรือคลิกขวาเข็มทิศ) =================
-menu:
-  title: "<gradient:#FF512F:#F09819><bold>PVP WORLDS</bold></gradient>"
-  rows: 3
-  worlds:
-    ffa:
-      name: "<red><bold>FFA Arena</bold>"
-      icon: IRON_SWORD
-      slot: 11
-      world: "pvp_ffa"            # <-- ชื่อโลกจริงใน Multiverse
-      spawn: ""                   # "x,y,z,yaw,pitch" หรือเว้นว่าง = จุดเกิดของโลก
-      lore: ["<gray>สู้กันอิสระ ใครก็ตีได้"]
-    duels:
-      name: "<aqua><bold>Duel Lobby</bold>"
-      icon: DIAMOND_SWORD
-      slot: 15
-      world: "world"
-      spawn: ""
-      lore: ["<gray>ล็อบบี้ ใช้ดาบท้าผู้เล่นอื่น"]
+# Height of the tier tag above the head. Raise it if it overlaps the player's name, lower it if too high.
+tier-tag-height: 0.75
 
-# ================= DUEL =================
-duel:
-  request-seconds: 30
-  end-delay-seconds: 3
-  allowed-commands: [duel, msg, r]
-  # โลกที่ย้ายไปสู้ (ตั้งชื่อโลกจริงที่นี่ เช่น 1pvp1)
-  arenas:
-    arena1:
-      world: "1pvp1"
-      a: ""        # จุดเกิดผู้ท้า  "x,y,z,yaw,pitch"
-      b: ""        # จุดเกิดผู้รับ  (เว้นว่าง = spawn ของโลก)
+# Show [TIER] before names in chat
+chat-format: true
 
-# ================= KIT (MATERIAL:จำนวน:ENCHANT=เลเวล,ENCHANT=เลเวล) =================
-kits:
-  classic:
-    name: "<aqua><bold>Classic</bold>"
-    icon: DIAMOND_SWORD
-    lore: ["<gray>ชุดเพชรมาตรฐาน"]
-    helmet:     "DIAMOND_HELMET:1:PROTECTION=2,UNBREAKING=3"
-    chestplate: "DIAMOND_CHESTPLATE:1:PROTECTION=2,UNBREAKING=3"
-    leggings:   "DIAMOND_LEGGINGS:1:PROTECTION=2,UNBREAKING=3"
-    boots:      "DIAMOND_BOOTS:1:PROTECTION=2,UNBREAKING=3"
-    items: ["DIAMOND_SWORD:1:SHARPNESS=2,UNBREAKING=3", "GOLDEN_APPLE:8", "COOKED_BEEF:32"]
-  iron:
-    name: "<gray><bold>Iron</bold>"
-    icon: IRON_SWORD
-    lore: ["<gray>เหล็กล้วน เร็วๆ จบๆ"]
-    helmet:     "IRON_HELMET"
-    chestplate: "IRON_CHESTPLATE"
-    leggings:   "IRON_LEGGINGS"
-    boots:      "IRON_BOOTS"
-    items: ["IRON_SWORD", "GOLDEN_APPLE:3", "COOKED_BEEF:16"]
-  uhc:
-    name: "<gold><bold>UHC</bold>"
-    icon: GOLDEN_APPLE
-    lore: ["<gray>ดาบ ธนู เบ็ด บล็อก"]
-    helmet:     "DIAMOND_HELMET:1:PROTECTION=1"
-    chestplate: "IRON_CHESTPLATE:1:PROTECTION=2"
-    leggings:   "IRON_LEGGINGS:1:PROTECTION=2"
-    boots:      "DIAMOND_BOOTS:1:PROTECTION=1"
-    items: ["DIAMOND_SWORD", "BOW:1:POWER=2", "ARROW:32", "FISHING_ROD", "LAVA_BUCKET", "WATER_BUCKET", "OAK_PLANKS:64", "GOLDEN_APPLE:6"]
-  archer:
-    name: "<green><bold>Archer</bold>"
-    icon: BOW
-    lore: ["<gray>สายธนู"]
-    helmet:     "LEATHER_HELMET:1:PROTECTION=2"
-    chestplate: "LEATHER_CHESTPLATE:1:PROTECTION=2"
-    leggings:   "LEATHER_LEGGINGS:1:PROTECTION=2"
-    boots:      "LEATHER_BOOTS:1:PROTECTION=2,FEATHER_FALLING=3"
-    items: ["BOW:1:POWER=3,INFINITY=1", "ARROW:1", "STONE_SWORD", "GOLDEN_APPLE:4"]
-  netherite:
-    name: "<dark_purple><bold>Netherite</bold>"
-    icon: NETHERITE_SWORD
-    lore: ["<gray>ของแรงสุด"]
-    helmet:     "NETHERITE_HELMET:1:PROTECTION=3,UNBREAKING=3"
-    chestplate: "NETHERITE_CHESTPLATE:1:PROTECTION=3,UNBREAKING=3"
-    leggings:   "NETHERITE_LEGGINGS:1:PROTECTION=3,UNBREAKING=3"
-    boots:      "NETHERITE_BOOTS:1:PROTECTION=3,UNBREAKING=3"
-    items: ["NETHERITE_SWORD:1:SHARPNESS=3,UNBREAKING=3", "GOLDEN_APPLE:16", "ENDER_PEARL:8"]
+# Default tier colors (by exact tier or by letters only, e.g. MT5 -> MT). Single color or gradient "#A:#B".
+# Override per player with /tier color <player> <color>
+tier-colors:
+  HT1: "#FFD700:#FF8C00"
+  HT2: "#FF4D4D:#FF9F1C"
+  HT3: "#FF7B54:#FFB26B"
+  HT4: "#FF9F1C"
+  HT5: "#FFC15E"
+  HT: "#FF4D4D:#FF9F1C"
+  MT1: "#B517FF:#7B2FF7"
+  MT2: "#C77DFF:#7B2FF7"
+  MT3: "#C77DFF"
+  MT4: "#D0A2FF"
+  MT5: "#E0C3FF"
+  MT: "#C77DFF:#7B2FF7"
+  LT1: "#00F5A0:#00D9F5"
+  LT2: "#38EF7D:#11998E"
+  LT3: "#4CC9F0"
+  LT4: "#7FDBFF"
+  LT5: "#A8E6FF"
+  LT: "#4CC9F0:#00F5A0"
 
-# ================= COMBAT / KILLSTREAK =================
 combat:
   enabled: true
   seconds: 15
-  kill-on-logout: true
-  blocked-commands: []     # เซิร์ฟ PVP ไม่มี /spawn /home
+  kill-on-logout: true        # logging out in combat = death (killer gets the kill)
+  blocked-commands: [spawn, home, homes, tpa, tpaccept, warp, hub, lobby, back, tp, rtp, kit]
 
-killstreak:
-  enabled: true
-  broadcast-every: 5
-  rewards:
-    "3": ["give {player} golden_apple 2"]
-    "5": ["give {player} enchanted_golden_apple 1"]
-    "10": ["give {player} netherite_ingot 2"]
-
-kill-rewards:
-  enabled: true
-  commands: ["give {killer} golden_apple 1"]
-  heal-killer: false
-
-spawn-protection-seconds: 5
+kills:
+  effects: true               # lightning effect + sound on kill
+  same-victim-cooldown: 30    # seconds; killing the same player again within this gives no credit
+  streak-milestone: 5         # broadcast every N kills in a row (0 = off)
+  reward-commands: []         # e.g. ["eco give %killer% 50", "heal %killer%"]
