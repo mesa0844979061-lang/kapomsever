@@ -1,6 +1,6 @@
 package th.kapom.core;
 
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -10,10 +10,10 @@ import org.bukkit.entity.TextDisplay;
 import java.util.*;
 import java.util.function.Supplier;
 
-/** ข้อความลอย (TextDisplay) ที่เกิดใหม่เองเมื่อ chunk โหลด และอัปเดตข้อความทุก 5 วิ */
+/** Floating text (TextDisplay): respawns when the chunk loads, refreshes every 5s */
 public class HoloManager {
     private static class E {
-        Location loc; Supplier<String> text; TextDisplay ent;
+        Location loc; Supplier<Component> text; TextDisplay ent;
     }
 
     private final KapomPlugin plugin;
@@ -21,7 +21,7 @@ public class HoloManager {
 
     public HoloManager(KapomPlugin plugin) { this.plugin = plugin; }
 
-    public void register(String key, Location loc, Supplier<String> text) {
+    public void register(String key, Location loc, Supplier<Component> text) {
         unregister(key);
         E e = new E();
         e.loc = loc; e.text = text;
@@ -50,11 +50,11 @@ public class HoloManager {
                     td.setBackgroundColor(Color.fromARGB(110, 0, 0, 0));
                 });
             }
-            e.ent.text(LegacyComponentSerializer.legacySection().deserialize(e.text.get()));
+            e.ent.text(e.text.get());
         }
     }
 
-    /** คีย์ที่ใกล้ที่สุดภายในรัศมี r และขึ้นต้นด้วย prefix */
+    /** Nearest key within radius r starting with prefix */
     public String nearest(Location l, double r, String prefix) {
         String best = null; double bd = r * r;
         for (Map.Entry<String, E> en : map.entrySet()) {

@@ -51,7 +51,7 @@ public class DataStore {
         return d;
     }
 
-    /** หาจากชื่อ (ออนไลน์/เคยเข้าเซิร์ฟ) ไม่เจอคืน null */
+    /** Find by name (online or has joined before); null if not found */
     public PD byName(String name) {
         Player online = Bukkit.getPlayerExact(name);
         if (online != null) return get(online);

@@ -16,6 +16,8 @@ import com.github.retrooper.packetevents.util.Vector3d;
 import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientInteractEntity;
 import com.github.retrooper.packetevents.wrapper.play.server.*;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
@@ -24,7 +26,7 @@ import org.bukkit.entity.Player;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** NPC แบบ packet: แต่ละคนเห็น "สกินของตัวเอง" */
+/** Packet NPC: every viewer sees their own skin */
 public class NpcManager {
     public static class Npc {
         public final String name, key;
@@ -52,7 +54,7 @@ public class NpcManager {
 
     public NpcManager(KapomPlugin plugin) { this.plugin = plugin; }
 
-    // ---------- จัดการข้อมูล ----------
+    // ---------- Data ----------
     public void load() {
         ConfigurationSection s = plugin.getConfig().getConfigurationSection("npcs");
         if (s == null) return;
@@ -67,9 +69,13 @@ public class NpcManager {
 
     private void add(Npc n) {
         npcs.put(n.key, n);
-        plugin.holos.register("npc:" + n.key, n.loc.clone().add(0, 2.05, 0), () ->
-                "§e§l" + n.name.replace('_', ' ') + "\n" +
-                        (n.target == null ? "§7(ยังไม่ได้ตั้งโลก)" : "§7คลิกเพื่อวาร์ปไป §b" + n.target));
+        plugin.holos.register("npc:" + n.key, n.loc.clone().add(0, 2.05, 0), () -> {
+            Component line2 = n.target == null
+                    ? Msg.mm("<#FF6B6B>Not configured")
+                    : Msg.mm("<gray>Click to travel to ").append(Component.text(n.target, TextColor.fromHexString("#4CC9F0")));
+            return Msg.mm("<gradient:#FFD166:#FF9F1C><bold>" + Msg.esc(n.name.replace('_', ' ')) + "</bold></gradient>")
+                    .append(Component.newline()).append(line2);
+        });
     }
 
     public boolean exists(String name) { return npcs.containsKey(name.toLowerCase()); }
@@ -106,7 +112,7 @@ public class NpcManager {
         plugin.saveConfig();
     }
 
-    // ---------- แสดง/ซ่อนตามระยะ ----------
+    // ---------- Show / hide by distance ----------
     public void start() {
         plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 20L, 10L);
         PacketEvents.getAPI().getEventManager().registerListener(new PacketListenerAbstract() {
@@ -128,7 +134,7 @@ public class NpcManager {
         });
     }
 
-    /** เรียกตอนเข้าเซิร์ฟ/เปลี่ยนโลก/เกิดใหม่ (client ลบ entity ทิ้งแล้ว) */
+    /** Called on join / world change / respawn (client already dropped entities) */
     public void clear(Player p) {
         shown.remove(p.getUniqueId());
         ready.put(p.getUniqueId(), System.currentTimeMillis() + 1500);
@@ -168,13 +174,13 @@ public class NpcManager {
     }
 
     private void show(Player p, Npc n) {
-        // ใช้สกินของ "คนที่กำลังดู" เอง
+        // Use the skin of the viewer
         List<TextureProperty> props = new ArrayList<>();
         for (ProfileProperty pp : p.getPlayerProfile().getProperties()) {
             if (pp.getName().equals("textures"))
                 props.add(new TextureProperty("textures", pp.getValue(), pp.getSignature()));
         }
-        // ชื่อโปรไฟล์เป็นช่องว่าง = ไม่มีชื่อลอยซ้ำ (ชื่อจริงใช้ TextDisplay แทน)
+        // Blank profile name = no duplicate nametag (real name is a TextDisplay)
         UserProfile prof = new UserProfile(n.uuid, " ", props);
         var info = new WrapperPlayServerPlayerInfoUpdate.PlayerInfo(prof, false, 0, GameMode.CREATIVE, null, null);
         send(p, new WrapperPlayServerPlayerInfoUpdate(
@@ -183,9 +189,12 @@ public class NpcManager {
         send(p, new WrapperPlayServerSpawnEntity(n.id, Optional.of(n.uuid), EntityTypes.PLAYER,
                 new Vector3d(n.loc.getX(), n.loc.getY(), n.loc.getZ()),
                 n.loc.getPitch(), n.loc.getYaw(), n.loc.getYaw(), 0, Optional.empty()));
-        List<EntityData<?>> md = new ArrayList<>();
-        md.add(new EntityData<>(plugin.getConfig().getInt("skin-layer-index", 17), EntityDataTypes.BYTE, (byte) 0x7F));
-        send(p, new WrapperPlayServerEntityMetadata(n.id, md));
+        int idx = plugin.getConfig().getInt("skin-layer-index", -1);
+        if (idx >= 0) { // wrong index for your version causes Network Protocol Error, so it is off by default
+            List<EntityData<?>> md = new ArrayList<>();
+            md.add(new EntityData<>(idx, EntityDataTypes.BYTE, (byte) 0x7F));
+            send(p, new WrapperPlayServerEntityMetadata(n.id, md));
+        }
         send(p, new WrapperPlayServerEntityHeadLook(n.id, n.loc.getYaw()));
     }
 
@@ -194,15 +203,15 @@ public class NpcManager {
         send(p, new WrapperPlayServerPlayerInfoRemove(n.uuid));
     }
 
-    // ---------- คลิก NPC ----------
+    // ---------- Click handling ----------
     private void click(Player p, Npc n) {
         long now = System.currentTimeMillis();
         if (cooldown.getOrDefault(p.getUniqueId(), 0L) > now) return;
         cooldown.put(p.getUniqueId(), now + 1000);
-        if (n.target == null) { p.sendMessage("§cNPC นี้ยังไม่ได้ตั้งโลกปลายทาง"); return; }
-        if (Bukkit.getWorld(n.target) == null) { p.sendMessage("§cไม่พบโลก §e" + n.target); return; }
-        p.sendMessage("§aกำลังวาร์ปไป §e" + n.target);
-        // ใช้ Multiverse-Core ทำการวาร์ป (รองรับทั้ง MV 4 และ 5)
+        if (n.target == null) { Msg.err(p, "This NPC has no destination world yet."); return; }
+        if (Bukkit.getWorld(n.target) == null) { Msg.err(p, "World " + Msg.VALUE + Msg.esc(n.target) + "<#FF6B6B> is not loaded."); return; }
+        Msg.ok(p, "Teleporting to " + Msg.VALUE + Msg.esc(n.target) + "<#7CFC9A>...");
+        // Teleport through Multiverse-Core (works with MV 4 and 5)
         boolean ok = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "mv tp " + p.getName() + " " + n.target);
         if (!ok) p.teleport(Bukkit.getWorld(n.target).getSpawnLocation());
     }

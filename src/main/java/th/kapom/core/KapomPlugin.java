@@ -1,5 +1,8 @@
 package th.kapom.core;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.*;
@@ -64,7 +67,7 @@ public class KapomPlugin extends org.bukkit.plugin.java.JavaPlugin implements Li
         if (k != null && !k.equals(v)) data.get(k).kills++;
     }
 
-    // ================= ตาราง =================
+    // ================= Leaderboards =================
     private int nextTableId() {
         ConfigurationSection s = getConfig().getConfigurationSection("tables");
         int max = 0;
@@ -85,30 +88,43 @@ public class KapomPlugin extends org.bukkit.plugin.java.JavaPlugin implements Li
         holos.register("table:" + id, loc, () -> tableText(type));
     }
 
-    private String tableText(String type) {
+    private Component tableText(String type) {
         boolean k = type.equals("kills");
         List<DataStore.PD> list = new ArrayList<>(data.all());
         list.sort(Comparator.comparingInt((DataStore.PD d) -> k ? d.kills : d.wins).reversed());
-        StringBuilder sb = new StringBuilder(k ? "§c§lตารางฆ่า §7(TOP 10)" : "§a§lตารางชนะ §7(TOP 10)");
+
+        Component c = Msg.mm(k
+                ? "<gradient:#FF416C:#FF4B2B><bold>⚔ TOP KILLS ⚔</bold></gradient>"
+                : "<gradient:#11998E:#38EF7D><bold>★ TOP WINS ★</bold></gradient>")
+                .append(Component.newline())
+                .append(Msg.mm("<dark_gray>━━━━━━━━━━━━━━━"));
+        String[] rankColors = {"#FFD700", "#C0C0C0", "#CD7F32"};
         for (int i = 0; i < 10; i++) {
+            String rc = i < 3 ? rankColors[i] : "#8A94A0";
             int v = i < list.size() ? (k ? list.get(i).kills : list.get(i).wins) : 0;
-            if (v > 0) sb.append("\n§e#").append(i + 1).append(" §f").append(list.get(i).name).append(" §7- §6").append(v);
-            else sb.append("\n§e#").append(i + 1).append(" §8---");
+            Component row = Msg.mm("<" + rc + "><bold>#" + (i + 1) + "</bold> ");
+            if (v > 0) {
+                row = row.append(Component.text(list.get(i).name, i < 3 ? TextColor.fromHexString(rc) : NamedTextColor.WHITE))
+                        .append(Msg.mm(" <dark_gray>» <#4CC9F0>" + v));
+            } else {
+                row = row.append(Msg.mm("<dark_gray>---"));
+            }
+            c = c.append(Component.newline()).append(row);
         }
-        return sb.toString();
+        return c;
     }
 
     private static String tableType(String s) {
         s = s.toLowerCase();
-        if (s.equals("ฆ่า") || s.equals("kills") || s.equals("kill")) return "kills";
-        if (s.equals("ชนะ") || s.equals("wins") || s.equals("win")) return "wins";
+        if (s.equals("kills") || s.equals("kill")) return "kills";
+        if (s.equals("wins") || s.equals("win")) return "wins";
         return null;
     }
 
     // ================= Commands =================
     @Override
     public boolean onCommand(CommandSender s, Command cmd, String label, String[] a) {
-        if (!s.hasPermission("kapom.admin")) { s.sendMessage("§cไม่มีสิทธิ์"); return true; }
+        if (!s.hasPermission("kapom.admin")) { Msg.err(s, "You don't have permission."); return true; }
         switch (cmd.getName().toLowerCase()) {
             case "kapom" -> kapom(s, a);
             case "tier" -> tier(s, a);
@@ -117,101 +133,117 @@ public class KapomPlugin extends org.bukkit.plugin.java.JavaPlugin implements Li
         return true;
     }
 
+    private void help(CommandSender s) {
+        s.sendMessage(Msg.mm("<gradient:#00F5A0:#00D9F5><bold>━━ KapomCore ━━</bold></gradient>"));
+        String[][] h = {
+                {"/kapom spawn npc <name>", "Create an NPC where you stand"},
+                {"/kapom spawn table <kills|wins>", "Create a leaderboard"},
+                {"/kapom remove npc <name>", "Remove an NPC"},
+                {"/kapom remove table", "Remove the nearest leaderboard"},
+                {"/kapom win|lose <player> [n]", "Add wins / losses"},
+                {"/npc <name> set <world>", "Set the NPC destination world"},
+                {"/tier add <player> <tier>", "Set a player's tier (e.g. MT5)"},
+                {"/tier remove <player>", "Clear a player's tier"},
+        };
+        for (String[] r : h)
+            s.sendMessage(Msg.mm("<#4CC9F0>" + Msg.esc(r[0]) + " <dark_gray>- <gray>" + Msg.esc(r[1])));
+    }
+
     private void kapom(CommandSender s, String[] a) {
-        if (a.length == 0) {
-            s.sendMessage("§e/kapom spawn npc <ชื่อ>\n/kapom spawn ตาราง <ฆ่า|ชนะ>\n/kapom remove npc <ชื่อ>\n/kapom remove ตาราง\n/kapom win|lose <ผู้เล่น> [จำนวน]");
-            return;
-        }
+        if (a.length == 0) { help(s); return; }
         switch (a[0].toLowerCase()) {
             case "spawn" -> {
-                if (!(s instanceof Player p)) { s.sendMessage("§cใช้ในเกมเท่านั้น"); return; }
-                if (a.length < 2) { s.sendMessage("§c/kapom spawn <ตาราง|npc> ..."); return; }
+                if (!(s instanceof Player p)) { Msg.err(s, "Players only."); return; }
+                if (a.length < 2) { Msg.err(s, "Usage: /kapom spawn <npc|table> ..."); return; }
                 String kind = a[1].toLowerCase();
                 if (kind.equals("npc")) {
-                    if (a.length < 3) { s.sendMessage("§c/kapom spawn npc <ชื่อ>"); return; }
+                    if (a.length < 3) { Msg.err(s, "Usage: /kapom spawn npc <name>"); return; }
                     String name = a[2];
-                    if (name.contains(".")) { s.sendMessage("§cชื่อห้ามมีจุด"); return; }
-                    if (npcs.exists(name)) { s.sendMessage("§cมี NPC ชื่อนี้แล้ว"); return; }
+                    if (name.contains(".")) { Msg.err(s, "The name can't contain a dot."); return; }
+                    if (npcs.exists(name)) { Msg.err(s, "An NPC with that name already exists."); return; }
                     npcs.create(name, p.getLocation());
-                    s.sendMessage("§aสร้าง NPC §e" + name + " §aแล้ว ตั้งโลกด้วย §f/npc " + name + " set <ชื่อโลก>");
-                } else if (kind.startsWith("ตาราง") || kind.startsWith("table")) {
-                    String rest = kind.startsWith("ตาราง") ? kind.substring(5) : kind.substring(5);
-                    if (rest.isEmpty() && a.length >= 3) rest = a[2];
-                    String type = tableType(rest);
-                    if (type == null) { s.sendMessage("§c/kapom spawn ตาราง <ฆ่า|ชนะ>"); return; }
+                    Msg.ok(s, "NPC " + Msg.VALUE + Msg.esc(name) + "<#7CFC9A> created. Now set its world with <#FFD166>/npc " + Msg.esc(name) + " set <world>");
+                } else if (kind.equals("table")) {
+                    String type = a.length >= 3 ? tableType(a[2]) : null;
+                    if (type == null) { Msg.err(s, "Usage: /kapom spawn table <kills|wins>"); return; }
                     String id = String.valueOf(nextTableId());
                     Location loc = p.getLocation().add(0, 2.0, 0);
                     getConfig().set("tables." + id + ".type", type);
                     getConfig().set("tables." + id + ".loc", loc);
                     saveConfig();
                     registerTable(id, type, loc);
-                    s.sendMessage("§aสร้างตาราง" + (type.equals("kills") ? "ฆ่า" : "ชนะ") + "แล้ว");
-                } else s.sendMessage("§c/kapom spawn <ตาราง|npc> ...");
+                    Msg.ok(s, "Created the " + Msg.VALUE + type + "<#7CFC9A> leaderboard.");
+                } else Msg.err(s, "Usage: /kapom spawn <npc|table> ...");
             }
             case "remove" -> {
-                if (a.length < 2) { s.sendMessage("§c/kapom remove <npc ชื่อ|ตาราง>"); return; }
+                if (a.length < 2) { Msg.err(s, "Usage: /kapom remove <npc <name>|table>"); return; }
                 if (a[1].equalsIgnoreCase("npc")) {
                     NpcManager.Npc n = a.length > 2 ? npcs.get(a[2]) : null;
-                    if (n == null) { s.sendMessage("§cไม่พบ NPC"); return; }
+                    if (n == null) { Msg.err(s, "NPC not found."); return; }
                     npcs.remove(n);
-                    s.sendMessage("§aลบ NPC แล้ว");
-                } else if (s instanceof Player p) {
+                    Msg.ok(s, "NPC removed.");
+                } else if (a[1].equalsIgnoreCase("table")) {
+                    if (!(s instanceof Player p)) { Msg.err(s, "Players only."); return; }
                     String key = holos.nearest(p.getLocation(), 6, "table:");
-                    if (key == null) { s.sendMessage("§cไม่พบตารางในรัศมี 6 บล็อก"); return; }
+                    if (key == null) { Msg.err(s, "No leaderboard within 6 blocks."); return; }
                     holos.unregister(key);
                     getConfig().set("tables." + key.substring(6), null);
                     saveConfig();
-                    s.sendMessage("§aลบตารางแล้ว");
-                }
+                    Msg.ok(s, "Leaderboard removed.");
+                } else Msg.err(s, "Usage: /kapom remove <npc <name>|table>");
             }
             case "win", "lose" -> {
-                if (a.length < 2) { s.sendMessage("§c/kapom " + a[0] + " <ผู้เล่น> [จำนวน]"); return; }
+                if (a.length < 2) { Msg.err(s, "Usage: /kapom " + a[0] + " <player> [amount]"); return; }
                 DataStore.PD d = data.byName(a[1]);
-                if (d == null) { s.sendMessage("§cไม่พบผู้เล่น"); return; }
+                if (d == null) { Msg.err(s, "Player not found."); return; }
                 int n = 1;
                 if (a.length > 2) try { n = Integer.parseInt(a[2]); } catch (NumberFormatException ignored) {}
                 if (a[0].equalsIgnoreCase("win")) d.wins += n; else d.losses += n;
-                s.sendMessage("§aอัปเดตแล้ว");
+                Msg.ok(s, "Updated " + Msg.VALUE + Msg.esc(d.name) + "<#7CFC9A>.");
             }
-            default -> s.sendMessage("§cไม่รู้จักคำสั่ง");
+            default -> help(s);
         }
     }
 
     private void tier(CommandSender s, String[] a) {
         if (a.length >= 3 && a[0].equalsIgnoreCase("add")) {
             DataStore.PD d = data.byName(a[1]);
-            if (d == null) { s.sendMessage("§cไม่พบผู้เล่น (ต้องเคยเข้าเซิร์ฟ)"); return; }
+            if (d == null) { Msg.err(s, "Player not found (they must have joined before)."); return; }
             d.tier = String.join(" ", Arrays.copyOfRange(a, 2, a.length));
             Player p = Bukkit.getPlayerExact(a[1]);
             if (p != null) boards.update(p);
-            s.sendMessage("§aตั้งเทียร์ " + a[1] + " เป็น §b" + d.tier.replace('&', '§'));
+            Msg.ok(s, "Tier of " + Msg.VALUE + Msg.esc(d.name) + "<#7CFC9A> set to " + Msg.VALUE + Msg.esc(d.tier));
         } else if (a.length >= 2 && a[0].equalsIgnoreCase("remove")) {
             DataStore.PD d = data.byName(a[1]);
-            if (d == null) { s.sendMessage("§cไม่พบผู้เล่น"); return; }
+            if (d == null) { Msg.err(s, "Player not found."); return; }
             d.tier = "-";
-            s.sendMessage("§aลบเทียร์แล้ว");
-        } else s.sendMessage("§c/tier add <ผู้เล่น> <เทียร์>  |  /tier remove <ผู้เล่น>");
+            Player p = Bukkit.getPlayerExact(a[1]);
+            if (p != null) boards.update(p);
+            Msg.ok(s, "Tier cleared.");
+        } else Msg.err(s, "Usage: /tier add <player> <tier>  |  /tier remove <player>");
     }
 
     private void npcCmd(CommandSender s, String[] a) {
-        if (a.length < 3 || !a[1].equalsIgnoreCase("set")) { s.sendMessage("§c/npc <ชื่อnpc> set <ชื่อโลก>"); return; }
+        if (a.length < 3 || !a[1].equalsIgnoreCase("set")) { Msg.err(s, "Usage: /npc <name> set <world>"); return; }
         NpcManager.Npc n = npcs.get(a[0]);
-        if (n == null) { s.sendMessage("§cไม่พบ NPC ชื่อ " + a[0]); return; }
-        if (Bukkit.getWorld(a[2]) == null) { s.sendMessage("§cโลก " + a[2] + " ยังไม่ถูกโหลด (ใช้ /mv load หรือ /mv create ก่อน)"); return; }
+        if (n == null) { Msg.err(s, "NPC " + Msg.VALUE + Msg.esc(a[0]) + "<#FF6B6B> not found."); return; }
+        if (Bukkit.getWorld(a[2]) == null) {
+            Msg.err(s, "World " + Msg.VALUE + Msg.esc(a[2]) + "<#FF6B6B> is not loaded (use /mv load or /mv create first).");
+            return;
+        }
         npcs.setTarget(n, a[2]);
-        s.sendMessage("§aNPC §e" + n.name + " §aจะวาร์ปไปโลก §b" + a[2]);
+        Msg.ok(s, "NPC " + Msg.VALUE + Msg.esc(n.name) + "<#7CFC9A> now teleports to " + Msg.VALUE + Msg.esc(a[2]));
     }
 
-    // ================= Tab =================
+    // ================= Tab completion =================
     @Override
     public List<String> onTabComplete(CommandSender s, Command cmd, String label, String[] a) {
         List<String> out = new ArrayList<>();
         switch (cmd.getName().toLowerCase()) {
             case "kapom" -> {
                 if (a.length == 1) out = List.of("spawn", "remove", "win", "lose");
-                else if (a.length == 2 && a[0].equalsIgnoreCase("spawn")) out = List.of("ตาราง", "npc");
-                else if (a.length == 2 && a[0].equalsIgnoreCase("remove")) out = List.of("ตาราง", "npc");
-                else if (a.length == 3 && a[0].equalsIgnoreCase("spawn") && a[1].equals("ตาราง")) out = List.of("ฆ่า", "ชนะ");
+                else if (a.length == 2 && (a[0].equalsIgnoreCase("spawn") || a[0].equalsIgnoreCase("remove"))) out = List.of("table", "npc");
+                else if (a.length == 3 && a[0].equalsIgnoreCase("spawn") && a[1].equalsIgnoreCase("table")) out = List.of("kills", "wins");
                 else if (a.length == 3 && a[0].equalsIgnoreCase("remove") && a[1].equalsIgnoreCase("npc"))
                     out = npcs.all().stream().map(n -> n.name).collect(Collectors.toList());
                 else if (a.length == 2 && (a[0].equalsIgnoreCase("win") || a[0].equalsIgnoreCase("lose")))
