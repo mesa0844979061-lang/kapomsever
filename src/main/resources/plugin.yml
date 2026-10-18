@@ -1,0 +1,21 @@
+name: KapomCore
+main: th.kapom.core.KapomPlugin
+version: 1.0.0
+api-version: '1.21'
+depend: [Multiverse-Core, packetevents]
+commands:
+  kapom:
+    description: คำสั่งหลัก KapomCore
+    usage: /kapom <spawn|remove|win|lose>
+    permission: kapom.admin
+  tier:
+    description: ตั้งเทียร์ผู้เล่น
+    usage: /tier add <ผู้เล่น> <เทียร์>
+    permission: kapom.admin
+  npc:
+    description: ตั้งโลกปลายทางของ NPC
+    usage: /npc <ชื่อnpc> set <ชื่อโลก>
+    permission: kapom.admin
+permissions:
+  kapom.admin:
+    default: op
